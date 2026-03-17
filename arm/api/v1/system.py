@@ -175,3 +175,35 @@ async def set_ripping_enabled(request: Request):
         "success": True,
         "ripping_enabled": not state.ripping_paused,
     }
+
+
+@router.get('/system/makemkv-key')
+def get_makemkv_key_status():
+    """Return MakeMKV key status: type, presence, and last update time."""
+    import re
+    from datetime import datetime, timezone
+
+    settings_file = "/home/arm/.MakeMKV/settings.conf"
+    result = {
+        "key_present": False,
+        "key_type": None,       # "beta" | "permanent" | None
+        "key_prefix": None,     # first 8 chars for display, e.g. "T-abc123"
+        "last_modified": None,  # ISO timestamp of settings.conf
+    }
+
+    try:
+        with open(settings_file) as f:
+            for line in f:
+                m = re.match(r'^app_Key\s*=\s*"([^"]+)"', line)
+                if m:
+                    key = m.group(1)
+                    result["key_present"] = True
+                    result["key_type"] = "permanent" if key.startswith("M-") else "beta"
+                    result["key_prefix"] = key[:8] + "..."
+                    break
+        mtime = os.path.getmtime(settings_file)
+        result["last_modified"] = datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
+    except OSError:
+        pass
+
+    return result

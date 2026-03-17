@@ -1,4 +1,5 @@
 """ARM API server — FastAPI."""
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -7,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import arm.config.config as cfg
 from arm.database import db
+from arm.services.key_refresh import daily_key_refresh
 
 log = logging.getLogger(__name__)
 
@@ -16,7 +18,9 @@ async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle."""
     db.init_engine('sqlite:///' + cfg.arm_config['DBFILE'])
     log.info("ARM API server starting up.")
+    refresh_task = asyncio.create_task(daily_key_refresh())
     yield
+    refresh_task.cancel()
     log.info("ARM API server shutting down.")
 
 
