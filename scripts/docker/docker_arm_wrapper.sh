@@ -59,4 +59,24 @@ else
 fi
 
 cd /home/arm || exit 1
+
+# --- Wait for drive to become ready ---
+# After udev fires, the drive may still be spinning up. MakeMKV will fail
+# with "Failed to open disc" if we start too early. Poll until dd can read
+# a single sector, with a timeout.
+MAX_WAIT=30
+WAITED=0
+echo "$(date) [ARM] Waiting for /dev/${DEVNAME} to become ready..." >> "$ARMLOG"
+while ! dd if="/dev/${DEVNAME}" bs=2048 count=1 >/dev/null 2>&1; do
+    WAITED=$((WAITED + 2))
+    if (( WAITED >= MAX_WAIT )); then
+        echo "$(date) [ARM] /dev/${DEVNAME} not ready after ${MAX_WAIT}s — proceeding anyway" >> "$ARMLOG"
+        break
+    fi
+    sleep 2
+done
+if (( WAITED > 0 && WAITED < MAX_WAIT )); then
+    echo "$(date) [ARM] /dev/${DEVNAME} ready after ${WAITED}s" >> "$ARMLOG"
+fi
+
 python3 /opt/arm/arm/ripper/main.py -d "${DEVNAME}" | logger -t ARM -s
