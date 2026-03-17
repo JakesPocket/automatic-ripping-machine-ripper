@@ -337,6 +337,9 @@ async def lookup_crc(crc64: str) -> dict[str, Any]:
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(CRC_DB_URL, params={"mode": "s", "crc64": crc64})
+            if resp.status_code == 404:
+                log.debug("CRC64 %s not found in database", crc64)
+                return {"found": False, "results": []}
             resp.raise_for_status()
             data = resp.json()
     except (httpx.HTTPError, httpx.ConnectError) as exc:
