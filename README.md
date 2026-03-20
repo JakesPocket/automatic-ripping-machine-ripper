@@ -130,7 +130,7 @@ Pre-built images are published to Docker Hub and GHCR on every release:
 |-----------|-----------|---------|
 | Base dependencies | `uprightbass360/arm-dependencies` | MakeMKV, system deps |
 | ARM | `uprightbass360/automatic-ripping-machine` | Ripper application |
-| UI | `uprightbass360/arm-ui` | Dashboard (SvelteKit + FastAPI) |
+| UI | `ghcr.io/jakespocket/automatic-ripping-machine-ui` | Dashboard (SvelteKit + FastAPI) |
 | Transcoder | `uprightbass360/arm-transcoder` | GPU-accelerated transcoding |
 
 ARM, base dependencies, and transcoder images are built for `linux/amd64`. The UI image is multi-platform (`amd64` + `arm64`). The transcoder also publishes GPU-specific tag suffixes (`-nvidia`, `-amd`, `-intel`).
