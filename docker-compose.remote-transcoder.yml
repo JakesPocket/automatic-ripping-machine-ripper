@@ -73,7 +73,7 @@ services:
 
   # Replacement dashboard (SvelteKit + FastAPI)
   arm-ui:
-    image: ghcr.io/jakespocket/automatic-ripping-machine-ui:${UI_VERSION:-latest}
+    image: ghcr.io/jakespocket/arm-ui:${UI_VERSION:-latest}
     container_name: arm-ui
     restart: unless-stopped
     ports:
