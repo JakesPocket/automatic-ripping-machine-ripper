@@ -3,13 +3,29 @@
 # Copy .env.remote-transcoder.example to .env and adjust values before starting.
 
 services:
-  # Fix ownership on the shared DB volume before ARM starts
+  # Ensure DB ownership and schema/bootstrap before ARM starts
   arm-db-init:
-    image: alpine
+    image: uprightbass360/automatic-ripping-machine:${ARM_VERSION:-latest}
     container_name: arm-db-init
+    user: root
     volumes:
-      - arm-db:/data/db
-    command: chown -R ${ARM_UID:-1000}:${ARM_GID:-1000} /data/db
+      - arm-db:/home/arm/db
+      - ${ARM_CONFIG_PATH}:/etc/arm/config
+      - ${ARM_LOGS_PATH}:/home/arm/logs
+    entrypoint: ["/bin/bash", "-lc"]
+    command: >
+      set -euo pipefail;
+      chown -R ${ARM_UID:-1000}:${ARM_GID:-1000} /home/arm/db /home/arm/logs /etc/arm/config;
+      su -s /bin/bash arm -c 'cd /opt/arm && python3 - <<'"'"'PY'"'"'
+      import arm.config.config as cfg
+      from arm.database import db
+      from arm.services.config import check_db_version, setup_database
+
+      db.init_engine("sqlite:///" + cfg.arm_config["DBFILE"])
+      check_db_version(cfg.arm_config["INSTALLPATH"], cfg.arm_config["DBFILE"])
+      setup_database()
+      print("DB bootstrap complete")
+      PY'
     restart: "no"
 
   # Dump HandBrake built-in presets to JSON for the UI settings page.
