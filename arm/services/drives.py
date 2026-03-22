@@ -166,6 +166,8 @@ class DriveInformationMedium(DriveInformationExtended, metaclass=MaskSerialMeta)
     """Medium is DVD (changes)"""
     media_bd: bool
     """Medium is BluRay (changes)"""
+    disc_label: str = ""
+    """Disc label from lsblk (optional, changes)"""
 
     def __post_init__(self):
         super().__post_init__()
@@ -180,6 +182,7 @@ def drives_search():
     Search the system for optical drives and yield DriveInformationMedium objects.
     """
     context = pyudev.Context()
+    import subprocess
     for device in context.list_devices(subsystem="block"):
         try:
             devnode = device.device_node
@@ -208,7 +211,22 @@ def drives_search():
                     DRIVE_INFORMATION_MEDIUM
                 )
                 values = [device.properties.get(field) or "" for field in fields]
-                yield DriveInformationMedium(*values)
+
+                # Try to get label from lsblk if ID_FS_LABEL is empty
+                id_fs_label = device.properties.get("ID_FS_LABEL") or ""
+                disc_label = id_fs_label
+                if not id_fs_label and devnode:
+                    try:
+                        result = subprocess.run([
+                            "lsblk", "-f", devnode, "-n", "-o", "LABEL"
+                        ], capture_output=True, text=True, timeout=2)
+                        label = result.stdout.strip().splitlines()
+                        if label:
+                            disc_label = label[0].strip()
+                    except Exception as e:
+                        log.warning(f"Failed to get disc label from lsblk for {devnode}: {e}")
+
+                yield DriveInformationMedium(*values, disc_label=disc_label)
 
         except Exception as e:
             log.error("Error processing device %s: %s", device, e, exc_info=True)
